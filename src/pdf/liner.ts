@@ -48,8 +48,8 @@ export class Liner {
     };
 
     default_breaker = (index:number, lines:any, cfg:any) => {
-        var CONTD = cfg.text_contd || "(CONT'D)";
-        var MORE = cfg.text_more || "(MORE)";
+        var CONTD = `(${cfg.text_contd})` || "(CONT'D)";
+        var MORE = `(${cfg.text_more})` || "(MORE)";
 
         for (var before = index - 1; before && !(lines[before].text); before--) {
         }

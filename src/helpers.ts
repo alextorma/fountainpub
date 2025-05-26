@@ -1,4 +1,12 @@
 import { create_token } from "./token";
+
+var enrich_line = function(line:any) {
+    for (var name in operators) {
+        line[name] = create_token_delegator(line, name);
+    }
+    return line;
+};
+
 class operatorClass{
     is:any;
     is_dialogue:any;
@@ -137,7 +145,10 @@ helpers.operators = operators;
 
 var create_token_delegator = function(line:any, name:string) {
     return function() {
-        return line.token ? line.token[name].apply(line.token, arguments) : null;
+        if (line.token && typeof line.token[name] === 'function') {
+            return line.token[name].apply(line.token, arguments);
+        }
+        return null;
     };
 };
 
@@ -154,12 +165,5 @@ helpers.fq = {};
 for (var name in operators) {
     helpers.fq[name] = create_fquery_delegator(name);
 }
-
-var enrich_line = function(line:any) {
-    for (var name in operators) {
-        line[name] = create_token_delegator(line, name);
-    }
-    return line;
-};
 
 export default helpers;

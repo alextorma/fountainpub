@@ -1,10 +1,16 @@
 import { calculateDialogueDuration, trimCharacterExtension, last, trimCharacterForceSymbol, parseLocationInformation, slugify } from "./utils";
 import { token, create_token } from "./token";
-import { Range, Position } from "vscode";
 import { getFountainConfig } from "./configloader";
-import * as vscode from 'vscode';
 import { AddDialogueNumberDecoration } from "./providers/Decorations";
 import helpers from "./helpers";
+
+class Position {
+    constructor(public line: number, public character: number) {}
+}
+
+class Range {
+    constructor(public start: Position, public end: Position) {}
+}
 
 declare global {
     interface Array<T> {
@@ -181,7 +187,7 @@ export class StructToken {
     notes: { note: string; line: number }[];
 }
 export class screenplayProperties {
-    scenes: { scene: string; text:string, line: number, actionLength: number, dialogueLength: number }[];
+    scenes: { scene: string; text: string, line: number, actionLength: number, dialogueLength: number }[];
     sceneLines: number[];
     sceneNames: string[];
     titleKeys: string[];
@@ -193,31 +199,45 @@ export class screenplayProperties {
     locations: Map<string, Location[]>;
     structure: StructToken[];
 }
+export class FountainStructureProperties {
+    scenes: { scene: number; line: number }[];
+    sceneLines: number[];
+    sceneNames: string[];
+    titleKeys: string[];
+    firstTokenLine: number;
+    fontLine: number;
+    lengthAction: number; //Length of the action character count
+    lengthDialogue: number; //Length of the dialogue character count
+    characters: Map<string, number[]>;
+}
+export type TitlePageSection = 'tl' | 'tc' | 'tr' | 'cc' | 'bl' | 'br' | 'hidden';
+
 export interface parseoutput {
-    scriptHtml: string,
-    titleHtml: string,
-    title_page: {[index:string]:token[]},
-    tokens: token[],
-    tokenLines: { [line: number]: number }
-    lengthAction: number,
-    lengthDialogue: number,
-    parseTime: number,
-    properties: screenplayProperties
+    title_page: {
+        [key in TitlePageSection]: any[];
+    };
+    tokens: token[];
+    scriptHtml: string;
+    titleHtml: string;
+    lengthAction: number;
+    lengthDialogue: number;
+    tokenLines: { [key: number]: number };
+    parseTime: number;
+    properties: screenplayProperties;
 }
 export var parse = function (original_script: string, cfg: any, generate_html: boolean): parseoutput {
-    var lastFountainEditor: vscode.Uri;
-    var config = getFountainConfig(lastFountainEditor);
+    var config = getFountainConfig(undefined);
     var emptytitlepage = true;
     var script = original_script,
         result: parseoutput = {
             title_page: {
-                tl:[],
-                tc:[],
-                tr:[],
-                cc:[],
-                bl:[],
-                br:[],
-                hidden:[]
+                tl: [],
+                tc: [],
+                tr: [],
+                cc: [],
+                bl: [],
+                br: [],
+                hidden: []
             },
             tokens: [],
             scriptHtml: "",
@@ -228,8 +248,8 @@ export var parse = function (original_script: string, cfg: any, generate_html: b
             parseTime: +new Date(),
             properties:
             {
-                sceneLines: [],
                 scenes: [],
+                sceneLines: [],
                 sceneNames: [],
                 titleKeys: [],
                 firstTokenLine: Infinity,
@@ -437,7 +457,7 @@ export var parse = function (original_script: string, cfg: any, generate_html: b
                 let keyformat = titlePageDisplay[thistoken.type];
                 if(keyformat){
                     thistoken.index = keyformat.index;
-                    result.title_page[keyformat.position].push(thistoken);
+                    result.title_page[keyformat.position as TitlePageSection].push(thistoken);
                     emptytitlepage = false;
                 }
                 title_page_started = true;
@@ -695,11 +715,11 @@ export var parse = function (original_script: string, cfg: any, generate_html: b
         //Generate html for title page
         if(!emptytitlepage){
             for (const section of Object.keys(result.title_page)) {
-                result.title_page[section].sort(helpers.sort_index);
+                result.title_page[section as TitlePageSection].sort(helpers.sort_index);
                 titlehtml.push(`<div class="titlepagesection" data-position="${section}">`);
                 let current_index = 0/*, previous_type = null*/;
-                while (current_index < result.title_page[section].length) {
-                    var current_token: token = result.title_page[section][current_index];
+                while (current_index < result.title_page[section as TitlePageSection].length) {
+                    var current_token: token = result.title_page[section as TitlePageSection][current_index];
                     if(current_token.ignore){
                         current_index++;
                         continue;

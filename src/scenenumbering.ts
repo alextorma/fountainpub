@@ -4,11 +4,30 @@ export enum SceneNumberingSchemas {
     "Standard"
 };
 
-export function generateSceneNumbers(currentSceneNumbers: string[], schema?: SceneNumberingSchema): string[] {
+// turns a Change like
+// {count:2,values:['a','b']} into 
+// [{values:['a']},{values:['b']}]
+// because I want to iterate on them individually
+function expandChanges(changes: any[]): any[] {
+    const result: any[] = [];
+    while (changes.length > 0) {
+        const change = changes.shift();
+        while (change.count-- > 1) {
+            const copy = { ...change };
+            copy.value = [];
+            copy.value.push(change.value.shift());
+            result.push(copy);
+        }
+        result.push(change);
+    }
+    return result;
+}
+
+export function generateSceneNumbers(oldNumbers: (string | null)[]): string[] {
     try {
-        schema = schema || makeSceneNumberingSchema(SceneNumberingSchemas.Standard);
-        const used = schema.deduceUsedNumbers(currentSceneNumbers.filter(v => v));
-        const alignment = expandChanges(diff.diffArrays(used, currentSceneNumbers));
+        const schema = makeSceneNumberingSchema(SceneNumberingSchemas.Standard);
+        const used = schema.deduceUsedNumbers(oldNumbers.filter(v => v) as string[]);
+        const alignment = expandChanges(diff.diffArrays(used, oldNumbers.filter(v => v) as string[]));
 
         const findNextKnownNumber = function (start: number, direction: number): string {
             var i = start;
@@ -21,7 +40,7 @@ export function generateSceneNumbers(currentSceneNumbers: string[], schema?: Sce
         }
 
         var previous: string;
-        return alignment
+        const result = alignment
             .map((alignmentPair, i) => {
                 if (alignmentPair.removed) return null;
                 if (!alignmentPair.added) {
@@ -40,34 +59,64 @@ export function generateSceneNumbers(currentSceneNumbers: string[], schema?: Sce
                 return inserted;
             })
             .filter(v => v);
+
+        // Handle null values in the input array
+        if (oldNumbers.includes(null)) {
+            const resultWithNulls: string[] = [];
+            
+            for (let i = 0; i < oldNumbers.length; i++) {
+                if (oldNumbers[i] === null) {
+                    // Find the previous and next non-null numbers
+                    let prev: string | null = null;
+                    let next: string | null = null;
+                    
+                    // Look for previous number in resultWithNulls
+                    for (let j = i - 1; j >= 0; j--) {
+                        if (resultWithNulls[j]) {
+                            prev = resultWithNulls[j];
+                            break;
+                        }
+                    }
+                    
+                    // Look for next number in oldNumbers
+                    for (let j = i + 1; j < oldNumbers.length; j++) {
+                        if (oldNumbers[j]) {
+                            next = oldNumbers[j] as string;
+                            break;
+                        }
+                    }
+                    
+                    // Generate the appropriate number
+                    let newNumber: string;
+                    if (prev && next) {
+                        newNumber = schema.getInBetween(prev, next, used);
+                    } else if (prev) {
+                        newNumber = schema.getNext([prev, ...used]);
+                    } else if (next) {
+                        newNumber = schema.getPrevious([next, ...used]);
+                    } else {
+                        newNumber = "1";
+                    }
+                    
+                    resultWithNulls.push(newNumber);
+                    used.push(newNumber);
+                } else {
+                    resultWithNulls.push(oldNumbers[i] as string);
+                }
+            }
+            return resultWithNulls;
+        }
+
+        return result;
     } catch (e) {
         console.error(e);
     }
-    return null;
+    return [];
 }
 
 export function makeSceneNumberingSchema(_schemaType: SceneNumberingSchemas): SceneNumberingSchema {
     // future Schemas could be selectable in the settings
     return new StandardSceneNumberingSchema();
-}
-
-// turns a Change like
-// {count:2,values:['a','b']} into 
-// [{values:['a']},{values:['b']}]
-// because I want to iterate on them individually
-function expandChanges(changes: diff.ArrayChange<string>[]): diff.ArrayChange<string>[] {
-    const result: diff.ArrayChange<string>[] = [];
-    while (changes.length > 0) {
-        const change = changes.shift();
-        while (change.count-- > 1) {
-            const copy = { ...change };
-            copy.value = [];
-            copy.value.push(change.value.shift());
-            result.push(copy);
-        }
-        result.push(change);
-    }
-    return result;
 }
 
 export interface SceneNumberingSchema {

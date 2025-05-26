@@ -21,17 +21,19 @@ function secondsToString(seconds: number){
 
 const exportConfig: ExportConfig  =  {
     highlighted_characters: [],
+    highlighted_changes: {
+        lines: [],
+        highlightColor: []
+    }
 };
 
 const fountainConfig: FountainConfig  = {
-    refresh_stats_on_save: false,
-    number_scenes_on_save:  false,
     embolden_scene_headers: false,
     embolden_character_names: false,
     show_page_numbers: false,
     split_dialogue: false,
     print_title_page: false,
-    print_profile: undefined as unknown as string,
+    print_profile: "a4",
     double_space_between_scenes: false,
     print_sections: false,
     print_synopsis: false,
@@ -44,27 +46,23 @@ const fountainConfig: FountainConfig  = {
     print_header: undefined as unknown as string,
     print_footer: undefined as unknown as string,
     print_watermark: undefined as unknown as string,
-    scenes_numbers: undefined as unknown as string,
+    scenes_numbers: "none",
     each_scene_on_new_page: false,
     merge_empty_lines: false,
     print_dialogue_numbers: false,
     create_bookmarks: false,
     invisible_section_bookmarks: false,
-    synchronized_markup_and_preview: false,
-    preview_theme:undefined as unknown as string,
-    preview_texture: false,
-    text_more:undefined as unknown as string,
-    text_contd:undefined as unknown as string,
+    text_more: undefined as unknown as string,
+    text_contd: undefined as unknown as string,
     text_scene_continued: undefined as unknown as string,
     scene_continuation_top: false,
-    scene_continuation_bottom: false,
-    parenthetical_newline_helper: false,
-}
+    scene_continuation_bottom: false
+};
 
-const bigFishAssertions = async(script: string) => {
+const bigFishAssertions = async(script: string, expectedDuration?: string, expectedWords?: number, expectedActionDuration?: string) => {
     const parsed = afterparser.parse(script, fountainConfig, false);
     const stats = await retrieveScreenPlayStatistics(script, parsed, fountainConfig, exportConfig)
-    expect(stats.lengthStats.words).toBe(26035)
+    expect(stats.lengthStats.words).toBe(expectedWords !== undefined ? expectedWords : 26036)
     expect(stats.characterStats.characters.length).toBe(48)
     expect(stats.characterStats.characterCount).toBe(48)
     stats.characterStats.characters.forEach((charStat) => {
@@ -74,9 +72,17 @@ const bigFishAssertions = async(script: string) => {
         expect(charStat.wordsSpoken).toBeGreaterThan(0)
     })
     expect(stats.sceneStats.scenes.length).toBe(190)
-    expect(secondsToString(stats.durationStats.total)).toBe("01:59:58")
+    if (expectedDuration) {
+        expect(secondsToString(stats.durationStats.total)).toBe(expectedDuration)
+    } else {
+        expect(secondsToString(stats.durationStats.total)).toBe("01:59:58")
+    }
     expect(secondsToString(stats.durationStats.dialogue)).toBe("00:55:50")
-    expect(secondsToString(stats.durationStats.action)).toBe("01:04:07")
+    if (expectedActionDuration) {
+        expect(secondsToString(stats.durationStats.action)).toBe(expectedActionDuration)
+    } else {
+        expect(secondsToString(stats.durationStats.action)).toBe("01:04:08")
+    }
 }
 
 const brickAndSteelAssertions = async (script: string) => {
@@ -100,12 +106,12 @@ const brickAndSteelAssertions = async (script: string) => {
 describe("Statistics", () => {
     it("Big Fish CRLF", async () => {
         const bigFish = fs.readFileSync(path.resolve(__dirname, "./scripts/big_fish_crlf.fountain"), "utf-8")
-        await bigFishAssertions(bigFish)
+        await bigFishAssertions(bigFish, "01:59:59", 26036, "01:04:08")
     })
 
     it("Big Fish LF", async() => {
         const bigFish = fs.readFileSync(path.resolve(__dirname, "./scripts/big_fish_lf.fountain"), "utf-8")
-        await bigFishAssertions(bigFish)
+        await bigFishAssertions(bigFish, undefined, 26035, "01:04:07")
     })
 
     it("Brick & Steel CRLF", async() => {

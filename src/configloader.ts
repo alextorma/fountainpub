@@ -1,126 +1,156 @@
-import * as vscode from 'vscode';
+'use strict';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import * as toml from '@iarna/toml';
 
-export class FountainConfig{
-    refresh_stats_on_save: boolean;
-    refresh_pdfpreview_on_save:boolean;
-    number_scenes_on_save: boolean;
-    embolden_scene_headers:boolean;
-    embolden_character_names:boolean;
-    show_page_numbers:boolean;
-    split_dialogue:boolean;
-    print_title_page:boolean;
-    print_profile:string;
-    double_space_between_scenes:boolean;
-    print_sections:boolean;
-    print_synopsis:boolean;
-    print_actions:boolean;
-    print_headers:boolean;
-    print_dialogues:boolean;
-    number_sections:boolean;
-    use_dual_dialogue:boolean;
-    print_notes:boolean;
-    print_header:string;
-    print_footer:string;
-    print_watermark:string;
-    scenes_numbers:string;
-    each_scene_on_new_page:boolean;
-    merge_empty_lines:boolean;
-    print_dialogue_numbers:boolean;
-    create_bookmarks:boolean;
-    invisible_section_bookmarks:boolean;
-    synchronized_markup_and_preview:boolean;
-    preview_theme:string;
-    preview_texture:boolean;
-    text_more:string;
-    text_contd:string;
-    text_scene_continued:string;
-    scene_continuation_top:boolean;
-    scene_continuation_bottom:boolean;
-    parenthetical_newline_helper:boolean;
+export class FountainConfig {
+    embolden_scene_headers: boolean;
+    embolden_character_names: boolean;
+    show_page_numbers: boolean;
+    split_dialogue: boolean;
+    print_title_page: boolean;
+    print_profile: 'a4' | 'usletter';
+    double_space_between_scenes: boolean;
+    print_sections: boolean;
+    print_synopsis: boolean;
+    print_actions: boolean;
+    print_headers: boolean;
+    print_dialogues: boolean;
+    number_sections: boolean;
+    use_dual_dialogue: boolean;
+    print_notes: boolean;
+    print_header: string;
+    print_footer: string;
+    print_watermark: string;
+    scenes_numbers: 'none' | 'left' | 'right' | 'both';
+    each_scene_on_new_page: boolean;
+    merge_empty_lines: boolean;
+    print_dialogue_numbers: boolean;
+    create_bookmarks: boolean;
+    invisible_section_bookmarks: boolean;
+    text_more: string;
+    text_contd: string;
+    text_scene_continued: string;
+    scene_continuation_top: boolean;
+    scene_continuation_bottom: boolean;
 }
+
+const defaultConfig: FountainConfig = {
+    embolden_scene_headers: true,
+    embolden_character_names: false,
+    show_page_numbers: true,
+    split_dialogue: true,
+    print_title_page: true,
+    print_profile: 'usletter',
+    double_space_between_scenes: false,
+    print_sections: false,
+    print_synopsis: false,
+    print_actions: true,
+    print_headers: true,
+    print_dialogues: true,
+    number_sections: false,
+    use_dual_dialogue: true,
+    print_notes: false,
+    print_header: '',
+    print_footer: '',
+    print_watermark: '',
+    scenes_numbers: 'both',
+    each_scene_on_new_page: false,
+    merge_empty_lines: true,
+    print_dialogue_numbers: false,
+    create_bookmarks: true,
+    invisible_section_bookmarks: true,
+    text_more: 'MORE',
+    text_contd: "CONT'D",
+    text_scene_continued: 'CONTINUED',
+    scene_continuation_top: false,
+    scene_continuation_bottom: false
+};
 
 export class ExportConfig {
     highlighted_characters: Array<String>;
     highlighted_changes: { lines: Array<number>, highlightColor: Array<number> };
 }
 
-export type FountainUIPersistence = {
-    [key: string]: any,
-    outline_visibleSynopses:boolean,
-    outline_visibleNotes:boolean
-    outline_visibleSections:boolean;
-    outline_visibleScenes:boolean;
-}
-export let uiPersistence:FountainUIPersistence = {
-    outline_visibleSynopses: true,
-    outline_visibleNotes: true,
-    outline_visibleScenes: true,
-    outline_visibleSections: true
-}
-
-let extensionContext:vscode.ExtensionContext = undefined;
-export var initFountainUIPersistence = function(context:vscode.ExtensionContext){
-    extensionContext = context;
-    context.globalState.keys().forEach((k)=>{
-        var v = context.globalState.get(k);
-        if(v != undefined){
-            uiPersistence[k] = v;
+function findConfigFile(startPath: string): string | null {
+    let currentPath = startPath;
+    while (currentPath !== path.parse(currentPath).root) {
+        // Check for all supported config file formats
+        const configPaths = [
+            path.join(currentPath, '.fountainpubrc'),
+            path.join(currentPath, '.fountainpubrc.json'),
+            path.join(currentPath, '.fountainpubrc.yaml'),
+            path.join(currentPath, '.fountainpubrc.yml'),
+            path.join(currentPath, '.fountainpubrc.toml')
+        ];
+        
+        for (const configPath of configPaths) {
+            if (fs.existsSync(configPath)) {
+                return configPath;
+            }
         }
+        currentPath = path.dirname(currentPath);
+    }
+    return null;
+}
+
+function loadConfigFile(configPath: string): Partial<FountainConfig> {
+    try {
+        const content = fs.readFileSync(configPath, 'utf8');
+        const ext = path.extname(configPath).toLowerCase();
+        
+        switch (ext) {
+            case '.json':
+                return JSON.parse(content);
+            case '.yaml':
+            case '.yml':
+                return yaml.load(content) as Partial<FountainConfig>;
+            case '.toml':
+                return toml.parse(content) as Partial<FountainConfig>;
+            default:
+                // Try parsing as JSON first, then YAML, then TOML
+                try {
+                    return JSON.parse(content);
+                } catch {
+                    try {
+                        return yaml.load(content) as Partial<FountainConfig>;
+                    } catch {
+                        return toml.parse(content) as Partial<FountainConfig>;
+                    }
+                }
+        }
+    } catch (error) {
+        console.warn(`Warning: Could not parse config file ${configPath}:`, error);
+        return {};
+    }
+}
+
+export function getFountainConfig(sourcePath?: string): FountainConfig {
+    if (!sourcePath) {
+        return defaultConfig;
+    }
+
+    // Start with default config
+    let config = { ...defaultConfig };
+
+    // Find and load all config files from root to source directory
+    const sourceDir = path.dirname(sourcePath);
+    let currentPath = sourceDir;
+    const configs: Partial<FountainConfig>[] = [];
+
+    while (currentPath !== path.parse(currentPath).root) {
+        const configPath = findConfigFile(currentPath);
+        if (configPath) {
+            configs.push(loadConfigFile(configPath));
+        }
+        currentPath = path.dirname(currentPath);
+    }
+
+    // Apply configs from root to source (later configs override earlier ones)
+    configs.reverse().forEach(partialConfig => {
+        config = { ...config, ...partialConfig };
     });
-    for(const k in uiPersistence){
-        vscode.commands.executeCommand('setContext', 'fountain.uipersistence.'+k, uiPersistence[k]);
-    }
-}
 
-export var changeFountainUIPersistence = function(key:"outline_visibleSynopses"|"outline_visibleNotes"|"outline_visibleSections"|"outline_visibleScenes", value:any){
-    if(extensionContext){
-        extensionContext.globalState.update(key, value);
-        uiPersistence[key] = value;
-        vscode.commands.executeCommand('setContext', 'fountain.uipersistence.'+key, value);
-    }
-}
-
-export var getFountainConfig = function(docuri:vscode.Uri):FountainConfig{
-    if(!docuri && vscode.window.activeTextEditor != undefined) 
-        docuri = vscode.window.activeTextEditor.document.uri;
-    var pdfConfig = vscode.workspace.getConfiguration("fountain.pdf", docuri);
-    var generalConfig = vscode.workspace.getConfiguration("fountain.general", docuri);
-    return {
-        number_scenes_on_save: generalConfig.numberScenesOnSave,
-        refresh_stats_on_save: generalConfig.refreshStatisticsOnSave,
-        refresh_pdfpreview_on_save: generalConfig.refreshPdfPreviewOnSave,
-        embolden_scene_headers: pdfConfig.emboldenSceneHeaders,
-        embolden_character_names: pdfConfig.emboldenCharacterNames,
-        show_page_numbers: pdfConfig.showPageNumbers,
-        split_dialogue: pdfConfig.splitDialog,
-        print_title_page: pdfConfig.printTitlePage,
-        print_profile: pdfConfig.printProfile,
-        double_space_between_scenes: pdfConfig.doubleSpaceBetweenScenes,
-        print_sections: pdfConfig.printSections,
-        print_synopsis: pdfConfig.printSynopsis,
-        print_actions: pdfConfig.printActions,
-        print_headers: pdfConfig.printHeaders,
-        print_dialogues: pdfConfig.printDialogues,
-        number_sections: pdfConfig.numberSections,
-        use_dual_dialogue: pdfConfig.useDualDialogue,
-        print_notes: pdfConfig.printNotes,
-        print_header: pdfConfig.pageHeader,
-        print_footer: pdfConfig.pageFooter,
-        print_watermark: pdfConfig.watermark,
-        scenes_numbers: pdfConfig.sceneNumbers,
-        each_scene_on_new_page: pdfConfig.eachSceneOnNewPage,
-        merge_empty_lines: pdfConfig.mergeEmptyLines,
-        print_dialogue_numbers: pdfConfig.showDialogueNumbers,
-        create_bookmarks: pdfConfig.createBookmarks,
-        invisible_section_bookmarks: pdfConfig.invisibleSectionBookmarks,
-        text_more: pdfConfig.textMORE,
-        text_contd: pdfConfig.textCONTD,
-        text_scene_continued: pdfConfig.textSceneContinued,
-        scene_continuation_top: pdfConfig.sceneContinuationTop,
-        scene_continuation_bottom: pdfConfig.sceneContinuationBottom,
-        synchronized_markup_and_preview: generalConfig.synchronizedMarkupAndPreview,
-        preview_theme: generalConfig.previewTheme,
-        preview_texture: generalConfig.previewTexture,
-        parenthetical_newline_helper:  generalConfig.parentheticalNewLineHelper
-    }
+    return config;
 }

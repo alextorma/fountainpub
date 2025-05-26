@@ -10,4 +10,6 @@ module.exports = {
       'default',
     ],
     preset: 'ts-jest',
+    diffMaxFiles: 1,
+    diffMaxLines: 25
   }

@@ -3,9 +3,8 @@
 import * as fountainconfig from "../configloader";
 import * as print from "./print";
 import * as path from 'path';
-import * as vscode from 'vscode';
 import helpers from "../helpers";
-import { openFile, revealFile, trimCharacterExtension, wordToColor } from "../utils";
+import { trimCharacterExtension, wordToColor } from "../utils";
 import * as he from 'he';
 import * as addTextbox from 'textbox-for-pdfkit';
 import { regex } from "../afterwriting-parser";
@@ -22,7 +21,7 @@ export class Options {
 }
 var PDFDocument = require('pdfkit'),
     //helper = require('../helpers'),
-    Blob = require('blob');
+    BlobCtor = (typeof Blob !== 'undefined') ? Blob : null;
 
 var create_simplestream = function (filepath: string) {
     var simplestream: any = {
@@ -47,45 +46,34 @@ var create_simplestream = function (filepath: string) {
                 //stream.on('finish', this.callback());
                 stream.on('error', function (err: any) {
                     if (err.code == "ENOENT") {
-                        vscode.window.showErrorMessage("Unable to export PDF! The specified location does not exist: " + err.path)
+                        console.error("Unable to export PDF! The specified location does not exist: " + err.path)
                     }
                     else if (err.code == "EPERM") {
-                        vscode.window.showErrorMessage("Unable to export PDF! You do not have the permission to write the specified file: " + err.path)
+                        console.error("Unable to export PDF! You do not have the permission to write the specified file: " + err.path)
                     }
                     else {
-                        vscode.window.showErrorMessage(err.message);
+                        console.error(err.message);
                     }
-                    console.log(err);
                 });
                 stream.on('finish', () => {
-                    let open = "Open";
-                    let reveal = "Reveal in File Explorer";
-                    if (process.platform == "darwin") reveal = "Reveal in Finder"
-                    vscode.window.showInformationMessage("Exported PDF Succesfully!", open, reveal).then(val => {
-                        switch (val) {
-                            case open: {
-                                openFile(simplestream.filepath);
-                                break;
-                            }
-                            case reveal: {
-                                revealFile(simplestream.filepath);
-                                break;
-                            }
-                        }
-                    })
                 })
 
                 stream.on('open', function () {
                     simplestream.chunks.forEach(function (buffer: any) {
-                        stream.write(new Buffer(buffer.toString('base64'), 'base64'));
+                        stream.write(Buffer.from(buffer.toString('base64'), 'base64'));
                     });
                     stream.end();
                 });
 
             } else {
-                simplestream.blob = new Blob(simplestream.chunks, {
-                    type: "application/pdf"
-                });
+                if (BlobCtor) {
+                    simplestream.blob = new BlobCtor(simplestream.chunks, {
+                        type: "application/pdf"
+                    });
+                } else {
+                    // Node.js fallback: use Buffer
+                    simplestream.blob = Buffer.concat(simplestream.chunks.map((chunk: any) => Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+                }
                 // simplestream.url = blobUtil.createObjectURL(this.blob);
                 this.callback(simplestream);
             }
@@ -844,11 +832,11 @@ async function generate(doc: any, opts: any, lineStructs?: Map<number, lineStruc
 
 }
 
-export var get_pdf = async function (opts: Options, progress: vscode.Progress<{ message?: string; increment?: number; }>) {
-    progress.report({ message: "Processing document", increment: 25 });
+export var get_pdf = async function (opts: Options, progress: { report: (value: { message?: string; increment?: number; }) => void; }) {
+    if (progress && typeof progress.report === 'function') progress.report({ message: "Processing document", increment: 25 });
     var doc = await initDoc(opts);
     generate(doc, opts,);
-    progress.report({ message: "Writing to disk", increment: 25 });
+    if (progress && typeof progress.report === 'function') progress.report({ message: "Writing to disk", increment: 25 });
     finishDoc(doc, opts.filepath);
 };
 

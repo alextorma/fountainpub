@@ -1,75 +1,108 @@
-import { getFountainConfig } from "../configloader";
-import { getActiveFountainDocument, getEditor } from "../utils";
-import * as afterparser from "../afterwriting-parser";
-import { fileToBase64, openFile, revealFile } from "../utils";
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from 'fs';
+import * as path from 'path';
+import * as afterparser from '../afterwriting-parser';
+import { getFountainConfig } from '../configloader';
+import { getActiveFountainDocument, getEditor } from '../utils';
 
-export async function exportHtml(){
-	let editor = getEditor(getActiveFountainDocument());
-	var filename = editor.document.fileName.replace(/(\.(((better)?fountain)|spmd|txt))$/, '');
-	var saveuri = vscode.Uri.file(filename);
-	let filepath = await vscode.window.showSaveDialog(
-			{
-				filters: { "HTML File": ["html"] },
-				defaultUri: saveuri
-			});
-    var fountainconfig = getFountainConfig(editor.document.uri);
-	var output = afterparser.parse(editor.document.getText(), fountainconfig , true);
-
-    let extensionpath = vscode.extensions.getExtension("piersdeseilligny.betterfountain").extensionPath;
-    let htmlpath = path.join(extensionpath, 'assets', 'staticexport.html');
-	var rawhtml =  fs.readFileSync(htmlpath, 'utf8');
-
-    if(process.platform != "win32"){
-        rawhtml = rawhtml.replace(/\r\n/g, "\n");
-    }
-
-    var pageClasses = "innerpage";
-    if (fountainconfig.scenes_numbers == "left")
-        pageClasses = "innerpage numberonleft";
-    else if (fountainconfig.scenes_numbers == "right")
-        pageClasses = "innerpage numberonright";
-    else if (fountainconfig.scenes_numbers == "both")
-        pageClasses = "innerpage numberonleft numberonright";
-
-    rawhtml = rawhtml.replace("$SCRIPTCLASS$", pageClasses);
-
-    let courierprimeB64 = fileToBase64(path.join(extensionpath, 'out', 'courierprime', 'courier-prime.ttf'));
-    let courierprimeB64_bold = fileToBase64(path.join(extensionpath, 'out', 'courierprime', 'courier-prime-bold.ttf'));
-    let courierprimeB64_italic = fileToBase64(path.join(extensionpath, 'out', 'courierprime', 'courier-prime-italic.ttf'));
-    let courierprimeB64_bolditalic = fileToBase64(path.join(extensionpath, 'out', 'courierprime', 'courier-prime-bold-italic.ttf'));
-
-    rawhtml = rawhtml.replace("$COURIERPRIME$", courierprimeB64)
-                     .replace("$COURIERPRIME-BOLD$", courierprimeB64_bold)
-                     .replace("$COURIERPRIME-ITALIC$", courierprimeB64_italic)
-                     .replace("$COURIERPRIME-BOLDITALIC$", courierprimeB64_bolditalic);
-
-    if(output.titleHtml){
-        rawhtml = rawhtml.replace("$TITLEPAGE$", output.titleHtml);
-    }
-    else{
-        rawhtml = rawhtml.replace("$TITLEDISPLAY$", "hidden")
-    }
-    rawhtml = rawhtml.replace("$SCREENPLAY$", output.scriptHtml);
-	vscode.workspace.fs.writeFile(filepath, Buffer.from(rawhtml)).then(()=>{
-        let open = "Open";
-        let reveal = "Reveal in File Explorer";
-        if(process.platform == "darwin") reveal = "Reveal in Finder"
-        vscode.window.showInformationMessage("Exported HTML Succesfully!", open, reveal).then(val=>{
-            switch(val){
-                case open:{
-                    openFile(filepath.fsPath);
-                    break;
+export async function exportHtml(parsed?: any, fountainconfig?: any, sourcePath?: string, outputPath?: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        try {
+            if (!parsed || !fountainconfig) {
+                const activeDoc = getActiveFountainDocument();
+                if (!activeDoc) {
+                    reject(new Error('No active document'));
+                    return;
                 }
-                case reveal:{
-                    revealFile(filepath.fsPath);
-                    break;
-                }
+                const editor = getEditor(activeDoc);
+                fountainconfig = getFountainConfig(editor.document.fileName);
+                parsed = afterparser.parse(editor.document.getText(), fountainconfig, true);
+                sourcePath = activeDoc;
             }
-        })
-    }, (err)=>{
-        vscode.window.showErrorMessage("Failed to export HTML: " + err.message);
+
+            const sourceFile = sourcePath || parsed.source;
+
+            if (!sourceFile) {
+                reject(new Error('Source file path is required'));
+                return;
+            }
+
+            const finalOutputPath = outputPath || path.join(path.dirname(sourceFile), path.basename(sourceFile, '.fountain') + '.html');
+
+            // Ensure output directory exists
+            const outputDir = path.dirname(finalOutputPath);
+            if (!fs.existsSync(outputDir)) {
+                fs.mkdirSync(outputDir, { recursive: true });
+            }
+
+            // Load HTML template
+            const templatePath = path.join(__dirname, '..', 'assets', 'StaticExports.html');
+            let templateHtml: string;
+
+            try {
+                templateHtml = fs.readFileSync(templatePath, 'utf8');
+            } catch (templateErr) {
+                // Fallback to compiled assets location
+                const compiledTemplatePath = path.join(__dirname, '..', '..', 'out', 'assets', 'StaticExports.html');
+                templateHtml = fs.readFileSync(compiledTemplatePath, 'utf8');
+            }
+
+            // Replace template variables
+            let finalHtml = templateHtml;
+
+            // Replace title page content
+            finalHtml = finalHtml.replace('$TITLEPAGE$', parsed.titleHtml || '');
+
+            // Replace screenplay content
+            finalHtml = finalHtml.replace('$SCREENPLAY$', parsed.scriptHtml || '');
+            
+            // Replace print profile (a4 or us-letter)
+            const printProfile = fountainconfig.print_profile === 'usletter' ? 'us-letter' : fountainconfig.print_profile || 'us-letter';
+            finalHtml = finalHtml.replace('$PRINTPROFILE$', printProfile);
+            
+            // Handle title display (show/hide title page)
+            // Only replace $TITLEDISPLAY$ if we actually want to hide the title
+            if (!(parsed.titleHtml && parsed.titleHtml.trim())) {
+                finalHtml = finalHtml.replace('$TITLEDISPLAY$', 'hidden');
+            }
+            // If titleDisplay is empty string, leave $TITLEDISPLAY$ placeholder unchanged
+
+            // Handle script class for scene numbers
+            let scriptClass = 'innerpage';
+            if (fountainconfig.scenes_numbers || fountainconfig.scene_numbers) {
+                const sceneNumbers = fountainconfig.scenes_numbers || fountainconfig.scene_numbers;
+                if (sceneNumbers === 'left') {
+                    scriptClass += ' numberonleft';
+                } else if (sceneNumbers === 'right') {
+                    scriptClass += ' numberonright';
+                } else if (sceneNumbers === 'both') {
+                    scriptClass += ' numberonboth';
+                } else {
+                    scriptClass += ' screenplay';
+                }
+            } else {
+                scriptClass += ' screenplay';
+            }
+            finalHtml = finalHtml.replace('$SCRIPTCLASS$', scriptClass);
+
+            // Load and embed font files as base64
+            const fontDir = path.join(__dirname, '..', 'courierprime');
+
+            // Load all courier prime font variants
+            const courierPrime = fs.readFileSync(path.join(fontDir, 'courier-prime.ttf'));
+            const courierPrimeBold = fs.readFileSync(path.join(fontDir, 'courier-prime-bold.ttf'));
+            const courierPrimeItalic = fs.readFileSync(path.join(fontDir, 'courier-prime-italic.ttf'));
+            const courierPrimeBoldItalic = fs.readFileSync(path.join(fontDir, 'courier-prime-bold-italic.ttf'));
+
+            // Convert to base64 and replace template variables
+            finalHtml = finalHtml.replace('$COURIERPRIME$', courierPrime.toString('base64'));
+            finalHtml = finalHtml.replace('$COURIERPRIME-BOLD$', courierPrimeBold.toString('base64'));
+            finalHtml = finalHtml.replace('$COURIERPRIME-ITALIC$', courierPrimeItalic.toString('base64'));
+            finalHtml = finalHtml.replace('$COURIERPRIME-BOLDITALIC$', courierPrimeBoldItalic.toString('base64'));
+
+            fs.writeFileSync(finalOutputPath, finalHtml);
+            resolve();
+        } catch (err) {
+            reject(err);
+        }
     });
 }
