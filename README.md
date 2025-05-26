@@ -18,6 +18,25 @@ And because it's an a CLI tool, you can use it in Github Actions to automate a p
 Writing with fountain lets you focus on the essential. With the addition of autocomplete and syntax highlighting, you have the ultimate clutter-free ultra-fast solution for writing screenplays. And because it's an extension for vscode, it's free and cross-platform, and you get lots of other cool features such as integrated source control and near-infinite extensibility.
 
 ## Usage
+```sh
+npm install -g fountainpub
+
+# Convert to PDF
+fountainpub script.fountain -p
+fountainpub script.fountain -p script.pdf
+
+# Convert to HTML
+fountainpub script.fountain -h
+fountainpub script.fountain -h script.html
+
+# Convert to both
+fountainpub script.fountain -p -h
+fountainpub script.fountain -p script.pdf -h script.html
+
+# With custom configuration
+fountainpub script.fountain -p script.pdf --config .fountainpubrc
+```
+
 ```
 fountainpub <source.fountain> -[p|h|i]
 
@@ -34,8 +53,31 @@ fountainpub <source.fountain> -[p|h|i]
 -i:             prints screenplay 
                 statistics
 ```
+## Configuration
+```yaml
+print_profile: 'usletter'  # or 'a4'
+scenes_numbers: 'left'     # 'left', 'right', 'both', or false
+embolden_character_names: true
+show_page_numbers: true
+text_contd: "(CONT'D)"
+text_more: "(MORE)"
+```
 
-## TODO
+### GitHub Actions
+
+```yaml
+- name: Setup Node.js
+  uses: actions/setup-node@v4
+  with:
+    node-version: '18'
+
+- name: Install FountainPub
+  run: npm install -g fountainpub
+
+- name: Convert screenplay
+  run: fountainpub script.fountain -p -h
+```
+## To Do
 
 I mean this is my first npm package and it was crudely ripped out of vscode, so I'm sure it can be cleaned up. PRs welcome.
 

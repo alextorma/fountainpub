@@ -1,0 +1,23 @@
+# Source files (we ship compiled JS)
+src/
+tsconfig.json
+jest.config.js
+
+# Test files
+src/test/
+*.spec.ts
+*.test.ts
+
+# Development files
+.vscode/
+.git/
+.github/
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
