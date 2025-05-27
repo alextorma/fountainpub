@@ -73,6 +73,28 @@ export class ExportConfig {
     highlighted_changes: { lines: Array<number>, highlightColor: Array<number> };
 }
 
+function findConfigFile(startPath: string): string | null {
+    let currentPath = startPath;
+    while (currentPath !== path.parse(currentPath).root) {
+        // Check for all supported config file formats
+        const configPaths = [
+            path.join(currentPath, '.fountainpubrc'),
+            path.join(currentPath, '.fountainpubrc.json'),
+            path.join(currentPath, '.fountainpubrc.yaml'),
+            path.join(currentPath, '.fountainpubrc.yml'),
+            path.join(currentPath, '.fountainpubrc.toml')
+        ];
+        
+        for (const configPath of configPaths) {
+            if (fs.existsSync(configPath)) {
+                return configPath;
+            }
+        }
+        currentPath = path.dirname(currentPath);
+    }
+    return null;
+}
+
 function loadConfigFile(configPath: string): Partial<FountainConfig> {
     try {
         const content = fs.readFileSync(configPath, 'utf8');
@@ -109,56 +131,26 @@ export function getFountainConfig(sourcePath?: string): FountainConfig {
         return defaultConfig;
     }
 
-    // console.log('DEBUG CONFIG: Loading config for source:', sourcePath); // DEBUG
-
     // Start with default config
     let config = { ...defaultConfig };
 
-    // Collect all config files from source directory up to filesystem root
-    const configFiles: string[] = [];
+    // Find and load all config files from root to source directory
     const sourceDir = path.dirname(sourcePath);
     let currentPath = sourceDir;
-    
-    // console.log('DEBUG CONFIG: Starting search from:', sourceDir); // DEBUG
-    
-    // Continue until we've checked the root directory
-    while (true) {
-        // console.log('DEBUG CONFIG: Checking directory:', currentPath); // DEBUG
-        // Check for config files in current directory
-        const configPaths = [
-            path.join(currentPath, '.fountainpubrc'),
-            path.join(currentPath, '.fountainpubrc.json'),
-            path.join(currentPath, '.fountainpubrc.yaml'),
-            path.join(currentPath, '.fountainpubrc.yml'),
-            path.join(currentPath, '.fountainpubrc.toml')
-        ];
-        
-        for (const configPath of configPaths) {
-            if (fs.existsSync(configPath)) {
-                // console.log('DEBUG CONFIG: Found config file:', configPath); // DEBUG
-                configFiles.push(configPath);
-                break; // Only one config file per directory
-            }
+    const configs: Partial<FountainConfig>[] = [];
+
+    while (currentPath !== path.parse(currentPath).root) {
+        const configPath = findConfigFile(currentPath);
+        if (configPath) {
+            configs.push(loadConfigFile(configPath));
         }
-        
-        // Stop if we've reached the filesystem root
-        const parentPath = path.dirname(currentPath);
-        if (parentPath === currentPath) {
-            break;
-        }
-        currentPath = parentPath;
+        currentPath = path.dirname(currentPath);
     }
 
-    // Apply configs from root to source directory (higher priority overrides lower)
-    // Reverse the array so we apply from root down to source directory
-    // console.log('DEBUG CONFIG: Found config files:', configFiles); // DEBUG
-    configFiles.reverse().forEach(configPath => {
-        // console.log('DEBUG CONFIG: Loading config:', configPath); // DEBUG
-        const partialConfig = loadConfigFile(configPath);
-        // console.log('DEBUG CONFIG: Loaded config:', partialConfig); // DEBUG
+    // Apply configs from root to source (later configs override earlier ones)
+    configs.reverse().forEach(partialConfig => {
         config = { ...config, ...partialConfig };
     });
 
-    // console.log('DEBUG CONFIG: Final config scenes_numbers:', config.scenes_numbers); // DEBUG
     return config;
 }

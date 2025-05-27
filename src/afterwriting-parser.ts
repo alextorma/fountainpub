@@ -226,7 +226,7 @@ export interface parseoutput {
     properties: screenplayProperties;
 }
 export var parse = function (original_script: string, cfg: any, generate_html: boolean): parseoutput {
-    var config = getFountainConfig(undefined);
+    var config = { ...getFountainConfig(undefined), ...cfg };
     var emptytitlepage = true;
     var script = original_script,
         result: parseoutput = {
@@ -815,10 +815,15 @@ export var parse = function (original_script: string, cfg: any, generate_html: b
                             html.push('</div><div class=\"dialogue right\">');
                         }
 
+                        var characterName = current_token.html;
+                        if (config.embolden_character_names) {
+                            characterName = '<span class=\"bold\">' + characterName + '</span>';
+                        }
+
                         if (config.print_dialogue_numbers) {
-                            html.push('<h4 class="haseditorline" id="sourceline_' + current_token.line + '">' + current_token.takeNumber + ' – ' + current_token.text + '</h4>');
+                            html.push('<h4 class="haseditorline" id="sourceline_' + current_token.line + '">' + current_token.takeNumber + ' – ' + characterName + '</h4>');
                         } else {
-                            html.push('<h4 class="haseditorline" id="sourceline_' + current_token.line + '">' + current_token.text + '</h4>');
+                            html.push('<h4 class="haseditorline" id="sourceline_' + current_token.line + '">' + characterName + '</h4>');
                         }
 
                         break;

@@ -827,16 +827,20 @@ async function generate(doc: any, opts: any, lineStructs?: Map<number, lineStruc
                         scene_number = '_' + scene_number + '_';
                     }
 
+                    // Create scene number text properties with gray color
+                    var scene_number_properties = Object.assign({}, text_properties);
+                    scene_number_properties.color = '#999'; // Darker gray
+
                     var shift_scene_number;
 
                     if (cfg.scenes_numbers === 'both' || cfg.scenes_numbers === 'left') {
                         shift_scene_number = (scene_text_length + 4) * print.font_width;
-                        doc.text2(scene_number, feed - shift_scene_number, print.top_margin + print.font_height * y, text_properties);
+                        doc.text2(scene_number, feed - shift_scene_number, print.top_margin + print.font_height * y, scene_number_properties);
                     }
 
                     if (cfg.scenes_numbers === 'both' || cfg.scenes_numbers === 'right') {
                         shift_scene_number = (print.scene_heading.max + 1) * print.font_width;
-                        doc.text2(scene_number, feed + shift_scene_number, print.top_margin + print.font_height * y, text_properties);
+                        doc.text2(scene_number, feed + shift_scene_number, print.top_margin + print.font_height * y, scene_number_properties);
                     }
                 }
                 y++;
