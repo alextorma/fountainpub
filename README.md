@@ -63,20 +63,10 @@ text_contd: "(CONT'D)"
 text_more: "(MORE)"
 ```
 
-### GitHub Actions
+### CI/CD
+Please see [FountainPub.template](https://github.com/alextorma/FountainPub.template) for potential integration ideas!
 
-```yaml
-- name: Setup Node.js
-  uses: actions/setup-node@v4
-  with:
-    node-version: '18'
 
-- name: Install FountainPub
-  run: npm install -g fountainpub
-
-- name: Convert screenplay
-  run: fountainpub script.fountain -p -h
-```
 ## To Do
 
 I mean this is my first npm package and it was crudely ripped out of vscode, so I'm sure it can be cleaned up. PRs welcome.
