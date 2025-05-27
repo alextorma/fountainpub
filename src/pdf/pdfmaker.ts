@@ -27,12 +27,24 @@ var create_simplestream = function (filepath: string) {
     var simplestream: any = {
         chunks: [],
         filepath: filepath,
+        callbacks: {},
         on: function (event: any, callback: any) {
-            console.log(event);
-            this.callback = callback;
+            this.callbacks[event] = callback;
         },
-        once: function () { },
-        emit: function () { },
+        once: function (event: any, callback: any) {
+            this.callbacks[event] = callback;
+        },
+        removeListener: function (event: any, callback: any) {
+            // Remove the listener for the event
+            if (this.callbacks[event] === callback) {
+                delete this.callbacks[event];
+            }
+        },
+        emit: function (event: any, data?: any) {
+            if (this.callbacks[event]) {
+                this.callbacks[event](data);
+            }
+        },
         write: function (chunk: any) {
             this.chunks.push(chunk);
         },
@@ -43,7 +55,7 @@ var create_simplestream = function (filepath: string) {
                 var stream = fs.createWriteStream(simplestream.filepath, {
                     encoding: "binary"
                 });
-                //stream.on('finish', this.callback());
+                
                 stream.on('error', function (err: any) {
                     if (err.code == "ENOENT") {
                         console.error("Unable to export PDF! The specified location does not exist: " + err.path)
@@ -54,9 +66,12 @@ var create_simplestream = function (filepath: string) {
                     else {
                         console.error(err.message);
                     }
+                    simplestream.emit('error', err);
                 });
+                
                 stream.on('finish', () => {
-                })
+                    simplestream.emit('finish');
+                });
 
                 stream.on('open', function () {
                     simplestream.chunks.forEach(function (buffer: any) {
@@ -75,7 +90,9 @@ var create_simplestream = function (filepath: string) {
                     simplestream.blob = Buffer.concat(simplestream.chunks.map((chunk: any) => Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
                 }
                 // simplestream.url = blobUtil.createObjectURL(this.blob);
-                this.callback(simplestream);
+                if (this.callbacks['finish']) {
+                    this.callbacks['finish'](simplestream);
+                }
             }
         }
     };
@@ -324,9 +341,21 @@ function inline(text: string) {
     return text.replace(/\n/g, ' ');
 }
 
-function finishDoc(doc: any, filepath: string) {
-    doc.pipe(create_simplestream(filepath));
-    doc.end();
+function finishDoc(doc: any, filepath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        var stream = create_simplestream(filepath);
+        
+        stream.on('finish', () => {
+            resolve();
+        });
+        
+        stream.on('error', (err: any) => {
+            reject(err);
+        });
+        
+        doc.pipe(stream);
+        doc.end();
+    });
 }
 
 
@@ -835,9 +864,9 @@ async function generate(doc: any, opts: any, lineStructs?: Map<number, lineStruc
 export var get_pdf = async function (opts: Options, progress: { report: (value: { message?: string; increment?: number; }) => void; }) {
     if (progress && typeof progress.report === 'function') progress.report({ message: "Processing document", increment: 25 });
     var doc = await initDoc(opts);
-    generate(doc, opts,);
+    await generate(doc, opts);
     if (progress && typeof progress.report === 'function') progress.report({ message: "Writing to disk", increment: 25 });
-    finishDoc(doc, opts.filepath);
+    await finishDoc(doc, opts.filepath);
 };
 
 export type lineStruct = {

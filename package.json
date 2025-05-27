@@ -1,18 +1,18 @@
 {
 	"name": "fountainpub",
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"description": "Generate PDF and HTML from Fountain screenplays with configurable settings via .fountainpubrc",
 	"main": "./out/cli.js",
 	"bin": {
 		"fountainpub": "./out/cli.js"
 	},
 	"files": [
-    "out/",
-    "src/assets/",
-    "src/courierprime/",
-    "README.md",
-    "LICENSE.md"
-  ],
+		"out/",
+		"src/assets/",
+		"src/courierprime/",
+		"README.md",
+		"LICENSE.md"
+	],
 	"scripts": {
 		"build": "tsc -p ./",
 		"compile": "tsc -p ./",
