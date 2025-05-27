@@ -1,6 +1,6 @@
 {
 	"name": "fountainpub",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Generate PDF and HTML from Fountain screenplays with configurable settings via .fountainpubrc",
 	"main": "./out/cli.js",
 	"bin": {
