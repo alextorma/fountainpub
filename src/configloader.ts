@@ -138,13 +138,26 @@ export function getFountainConfig(sourcePath?: string): FountainConfig {
     const sourceDir = path.dirname(sourcePath);
     let currentPath = sourceDir;
     const configs: Partial<FountainConfig>[] = [];
+    const visitedPaths = new Set<string>();
 
     while (currentPath !== path.parse(currentPath).root) {
+        // Prevent infinite loops by checking if we've already visited this path
+        if (visitedPaths.has(currentPath)) {
+            break;
+        }
+        visitedPaths.add(currentPath);
+
         const configPath = findConfigFile(currentPath);
         if (configPath) {
             configs.push(loadConfigFile(configPath));
         }
-        currentPath = path.dirname(currentPath);
+        
+        const parentPath = path.dirname(currentPath);
+        // Additional safety check: if dirname returns the same path, we're at the root
+        if (parentPath === currentPath) {
+            break;
+        }
+        currentPath = parentPath;
     }
 
     // Apply configs from root to source (later configs override earlier ones)
