@@ -515,60 +515,6 @@
 
         /* ===== RESPONSIVE LAYOUT SYSTEM ===== */
 
-        /* Bottom Navigation (hidden by default) */
-        .bottom-nav {
-            display: none;
-            position: fixed !important;
-            bottom: 23px !important;
-            /* Above statusbar */
-            left: 0 !important;
-            right: 0 !important;
-            height: 40px;
-            background-color: var(--vscode-sideBar-background);
-            border-top: 1px solid var(--vscode-panel-border);
-            z-index: 150 !important;
-            user-select: none;
-        }
-
-        .bottom-nav ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            height: 100%;
-        }
-
-        .bottom-nav li {
-            cursor: pointer;
-            padding: 8px 12px;
-            color: var(--vscode-list-deemphasizedForeground);
-            font-size: 12px;
-            text-align: center;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .bottom-nav .codicon {
-            font-size: 16px;
-            margin-bottom: 2px;
-        }
-
-        .bottom-nav li:hover {
-            color: var(--vscode-list-hoverForeground);
-            background-color: var(--vscode-list-hoverBackground);
-        }
-
-        .bottom-nav li.active {
-            font-weight: 500;
-            color: var(--vscode-list-activeSelectionForeground);
-            background-color: var(--vscode-list-activeSelectionBackground);
-        }
-
         /* Compact duration stats for Status mode */
         .duration-compact {
             display: none;
@@ -606,49 +552,109 @@
             background-color: var(--vscode-statusBar-background) !important;
         }
 
-        /* Adjust content bottom margin to account for statusbar */
-
         /* ===== NORMAL VIEW: Width > 800px AND Height > 260px ===== */
         @media (min-width: 801px) and (min-height: 261px) {
 
+            /* Desktop side navigation - default styling applies */
             .sidenav {
-                display: flex !important;
+                /* Keep default side positioning */
+                width: 200px;
+                height: 100%;
+                top: 0;
+                left: 0;
+                flex-direction: column;
+                border-top: none;
             }
 
-            .bottom-nav {
-                display: none !important;
+            .sidenav .title {
+                display: block;
+                /* Show title section */
             }
 
-            .splitview #content {
-                margin-left: 200px !important;
-                margin-bottom: 0 !important;
+            .sidenav ul {
+                flex-direction: column;
+            }
+
+            .sidenav li {
+                padding: 2px 24px;
+                font-size: inherit;
+                flex-direction: row;
+                text-align: left;
+            }
+
+            .sidenav .codicon {
+                margin-right: 6px;
+                margin-bottom: 0;
+                font-size: 16px;
             }
         }
 
         /* ===== WIDE SCOREBOARD (ORANGE): Width 376px-800px AND Height > 260px (NOT status mode) ===== */
         @media (min-width: 376px) and (max-width: 800px) and (min-height: 261px) {
+
+            /* Top navigation positioning */
             .sidenav {
-                display: none !important;
+                width: 100%;
+                height: 40px;
+                top: 0;
+                left: 0;
+                right: 0;
+                flex-direction: row;
+                border-top: 1px solid var(--vscode-panel-border);
             }
 
-            .bottom-nav {
-                display: block !important;
-                position: fixed !important;
-                bottom: 23px !important;
-                /* Above statusbar */
-                left: 0 !important;
-                right: 0 !important;
-                z-index: 150 !important;
+            .sidenav .title {
+                display: none;
+                /* Hide title section */
+            }
+
+            .sidenav ul {
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                height: 100%;
+                width: 100%;
+            }
+
+            .sidenav li {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                font-size: 12px;
+                text-align: center;
+                height: 40px;
+                box-sizing: border-box;
+                line-height: normal;
+            }
+
+            .sidenav .codicon {
+                font-size: 12px;
+                margin: 0 0 2px 0;
+                padding: 0;
+                line-height: 12px;
+                /* Match font size */
+                display: block;
             }
 
             .splitview #content {
                 margin-left: 0 !important;
-                margin-bottom: 63px !important;
-                /* 40px bottom nav + 23px statusbar */
+                margin-top: 40px !important;
+                /* Space for top navigation */
+                margin-bottom: 23px !important;
+                /* Space for statusbar only */
             }
 
             #content>div {
                 margin: 0 24px !important;
+            }
+
+            /* Fix header positioning under top nav */
+            #content div[data-group] h1 {
+                margin-top: 50px !important;
+                /* Space for top navigation */
             }
 
             /* Center content in flexgroups */
@@ -703,28 +709,70 @@
 
         /* ===== COMPACT SCOREBOARD (BLUE): Width 281px-375px AND Height > 260px (NOT status mode) ===== */
         @media (min-width: 281px) and (max-width: 375px) and (min-height: 261px) {
+
+            /* Top navigation positioning */
             .sidenav {
-                display: none !important;
+                width: 100%;
+                height: 40px;
+                top: 0;
+                left: 0;
+                right: 0;
+                flex-direction: row;
+                border-top: 1px solid var(--vscode-panel-border);
             }
 
-            .bottom-nav {
-                display: block !important;
-                position: fixed !important;
-                bottom: 23px !important;
-                /* Above statusbar */
-                left: 0 !important;
-                right: 0 !important;
-                z-index: 150 !important;
+            .sidenav .title {
+                display: none;
+                /* Hide title section */
+            }
+
+            .sidenav ul {
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                height: 100%;
+                width: 100%;
+            }
+
+            .sidenav li {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                font-size: 11px;
+                text-align: center;
+                height: 40px;
+                box-sizing: border-box;
+                line-height: normal;
+            }
+
+            .sidenav .codicon {
+                font-size: 12px;
+                margin: 0 0 1px 0;
+                padding: 0;
+                line-height: 12px;
+                /* Match font size */
+                display: block;
             }
 
             .splitview #content {
                 margin-left: 0 !important;
-                margin-bottom: 63px !important;
-                /* 40px bottom nav + 23px statusbar */
+                margin-top: 40px !important;
+                /* Space for top navigation */
+                margin-bottom: 23px !important;
+                /* Space for statusbar only */
             }
 
             #content>div {
                 margin: 0 16px !important;
+            }
+
+            /* Fix header positioning under top nav */
+            #content div[data-group] h1 {
+                margin-top: 45px !important;
+                /* Space for top navigation */
             }
 
             /* Center content in flexgroups */
@@ -779,28 +827,71 @@
 
         /* ===== PANEL VIEW (GREEN): Width <= 280px AND Height > 260px (NOT status mode) ===== */
         @media (max-width: 280px) and (min-height: 261px) {
+
+            /* Top navigation positioning with icon-only design */
             .sidenav {
-                display: none !important;
+                width: 100%;
+                height: 30px;
+                top: 0;
+                left: 0;
+                right: 0;
+                flex-direction: row;
+                border-top: 1px solid var(--vscode-panel-border);
             }
 
-            .bottom-nav {
-                display: block !important;
-                position: fixed !important;
-                bottom: 23px !important;
-                /* Above statusbar */
-                left: 0 !important;
-                right: 0 !important;
-                z-index: 150 !important;
+            .sidenav .title {
+                display: none;
+                /* Hide title section */
+            }
+
+            .sidenav ul {
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                height: 100%;
+                width: 100%;
+            }
+
+            .sidenav li {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                font-size: 0;
+                /* Hide text for icon-only mode */
+                text-align: center;
+                height: 30px;
+                box-sizing: border-box;
+                line-height: 1;
+            }
+
+            .sidenav .codicon {
+                font-size: 14px;
+                margin: 0;
+                padding: 0;
+                line-height: 14px;
+                /* Match icon font size for proper centering */
+                display: block;
             }
 
             .splitview #content {
                 margin-left: 0 !important;
-                margin-bottom: 63px !important;
-                /* 40px bottom nav + 23px statusbar */
+                margin-top: 30px !important;
+                /* Match smaller navigation height */
+                margin-bottom: 23px !important;
+                /* Space for statusbar only */
             }
 
             #content>div {
                 margin: 0 8px !important;
+            }
+
+            /* Fix header positioning under top nav */
+            #content div[data-group] h1 {
+                margin-top: 35px !important;
+                /* Space for top navigation */
             }
 
             /* Vertical stacking for narrow panels */
@@ -856,7 +947,7 @@
             /* Compact headers */
             h1 {
                 font-size: 14px !important;
-                margin: 8px 0 4px !important;
+                margin: 8px 0 4px 0 !important;
             }
 
             h1 .codicon {
@@ -891,20 +982,54 @@
         /* ===== STATUS BAR VIEW (RED-ORANGE): Height <= 260px (overrides everything) ===== */
         @media (max-height: 260px) {
 
-            /* Reset all other styles first */
+            /* Bottom navigation positioning for status mode */
             .sidenav {
-                display: none !important;
+                width: 100%;
+                height: 25px;
+                top: auto;
+                bottom: 23px;
+                /* Above statusbar */
+                left: 0;
+                right: 0;
+                flex-direction: row;
+                border-top: 1px solid var(--vscode-panel-border);
+                z-index: 1000;
+                /* Higher z-index to ensure it's on top */
             }
 
-            .bottom-nav {
-                display: block !important;
-                height: 25px !important;
-                position: fixed !important;
-                bottom: 23px !important;
-                left: 0 !important;
-                right: 0 !important;
-                z-index: 1000 !important;
-                /* Higher z-index to ensure it's on top */
+            .sidenav .title {
+                display: none;
+                /* Hide title section */
+            }
+
+            .sidenav ul {
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                height: 100%;
+                width: 100%;
+            }
+
+            .sidenav li {
+                flex: 1;
+                display: flex;
+                flex-direction: row;
+                /* Inline layout for status mode */
+                align-items: center;
+                justify-content: center;
+                padding: 2px 8px;
+                font-size: 11px;
+                text-align: center;
+                height: 25px;
+                box-sizing: border-box;
+            }
+
+            .sidenav .codicon {
+                font-size: 12px;
+                margin-right: 4px;
+                margin-bottom: 0;
+                line-height: 1;
+                display: inline-block;
             }
 
             .splitview #content {
@@ -969,7 +1094,7 @@
             .lengthstats .duration-compact {
                 display: block !important;
                 text-align: center !important;
-                margin: 4px 0 0 !important;
+                margin: 4px 0 0 0 !important;
                 font-size: 11px !important;
             }
 
@@ -1009,13 +1134,13 @@
             }
 
             /* Bottom nav inline buttons for status mode */
-            .bottom-nav li {
+            .sidenav li {
                 flex-direction: row !important;
                 font-size: 11px !important;
                 padding: 4px 8px !important;
             }
 
-            .bottom-nav .codicon {
+            .sidenav .codicon {
                 font-size: 12px !important;
                 margin-right: 4px !important;
                 margin-bottom: 0 !important;
@@ -1040,12 +1165,12 @@
                 font-size: 14px !important;
             }
 
-            .bottom-nav li {
+            .sidenav li {
                 font-size: 12px !important;
                 padding: 5px 10px !important;
             }
 
-            .bottom-nav .codicon {
+            .sidenav .codicon {
                 font-size: 14px !important;
             }
         }
@@ -1092,12 +1217,12 @@
             }
 
             /* Icon-only bottom nav */
-            .bottom-nav li {
+            .sidenav li {
                 padding: 2px 4px !important;
                 font-size: 0 !important;
             }
 
-            .bottom-nav .codicon {
+            .sidenav .codicon {
                 font-size: 14px !important;
                 margin-right: 0 !important;
             }
@@ -1152,16 +1277,12 @@
                 height: 23px !important;
             }
 
-            body .bottom-nav {
+            body .sidenav {
                 position: fixed !important;
                 bottom: 23px !important;
                 z-index: 1000 !important;
                 height: 25px !important;
-                display: block !important;
-            }
-
-            body .sidenav {
-                display: none !important;
+                display: flex !important;
             }
 
             body .splitview #content {
@@ -1170,17 +1291,61 @@
             }
         }
     </style>
+    <script>
+        // Function to sync duration values between main and compact elements
+        function syncDurationValues() {
+            const totalElement = document.getElementById('durationStats-total');
+            const actionElement = document.getElementById('durationStats-action');
+            const dialogueElement = document.getElementById('durationStats-dialogue');
+
+            if (totalElement && totalElement.textContent !== '0') {
+                // Sync compact elements
+                const totalCompact = document.getElementById('durationStats-total-compact');
+                const actionCompact = document.getElementById('durationStats-action-compact');
+                const dialogueCompact = document.getElementById('durationStats-dialogue-compact');
+                const totalFlexitem = document.getElementById('durationStats-total-flexitem');
+
+                if (totalCompact) totalCompact.textContent = totalElement.textContent;
+                if (actionCompact && actionElement) actionCompact.textContent = actionElement.textContent;
+                if (dialogueCompact && dialogueElement) dialogueCompact.textContent = dialogueElement.textContent;
+                if (totalFlexitem) totalFlexitem.textContent = totalElement.textContent;
+            }
+        }
+
+        // Initialize navigation when DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            // Set up duration value syncing with MutationObserver only
+            const observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    if (mutation.target.id && mutation.target.id.startsWith('durationStats-')) {
+                        syncDurationValues();
+                    }
+                });
+            });
+
+            // Observe changes to all duration elements
+            const durationElements = ['durationStats-total', 'durationStats-action', 'durationStats-dialogue'];
+            durationElements.forEach(function (id) {
+                const element = document.getElementById(id);
+                if (element) {
+                    observer.observe(element, { childList: true, characterData: true, subtree: true });
+                }
+            });
+
+            // Sync once on load in case values are already present
+            syncDurationValues();
+        });
+    </script>
 </head>
 
 <body>
 
     <div id="maincontent" class="splitview">
-        <div class="sidenav" id="sidenav">
+        <nav class="sidenav" id="sidenav">
             <div class="title"><span class="codicon codicon-pulse"></span>Statistics</div>
-
             <ul>
                 <li data-group="overview" id="hello" class="active">
-                    <span class="codicon codicon-star-empty"></span>Overview
+                    <span class="codicon codicon-dashboard"></span>Length
                 </li>
                 <li data-group="characters">
                     <span class="codicon codicon-organization"></span>Characters
@@ -1188,23 +1353,8 @@
                 <li data-group="scenes">
                     <span class="codicon codicon-output"></span>Scenes
                 </li>
-                <!-- <li data-group="locations">
-                <span class="codicon codicon-location"></span>Locations
-            </li>-->
             </ul>
-            <!-- <div class="title"><span class="codicon codicon-book"></span>Reports</div> 
-        <ul>
-            <li data-group="characters">
-                <span class="codicon codicon-organization"></span>Characters
-            </li>
-            <li data-group="scenes">
-                <span class="codicon codicon-output"></span>Scenes
-            </li>
-            <li data-group="locations">
-                <span class="codicon codicon-location"></span>Locations
-            </li>
-        </ul>-->
-        </div>
+        </nav>
         <div id="content" class="content">
             <div data-group="overview">
                 <h1><span class="codicon codicon-symbol-ruler"></span>Length</h1>
@@ -1384,24 +1534,6 @@
 
         </div>-->
         </div>
-    </div>
-
-    <!-- Bottom Navigation (for Scoreboard mode) -->
-    <div class="bottom-nav" id="bottom-nav">
-        <ul>
-            <li data-group="overview" class="active">
-                <span class="codicon codicon-star-empty"></span>
-                Overview
-            </li>
-            <li data-group="characters">
-                <span class="codicon codicon-organization"></span>
-                Characters
-            </li>
-            <li data-group="scenes">
-                <span class="codicon codicon-output"></span>
-                Scenes
-            </li>
-        </ul>
     </div>
 
     <div class="statusbar" class="loading">
