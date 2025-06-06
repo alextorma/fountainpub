@@ -75,7 +75,9 @@ export class ExportConfig {
 
 function findConfigFile(startPath: string): string | null {
     let currentPath = startPath;
-    while (currentPath !== path.parse(currentPath).root) {
+    const rootPath = path.parse(currentPath).root;
+
+    while (currentPath !== rootPath) {
         // Check for all supported config file formats
         const configPaths = [
             path.join(currentPath, '.fountainpubrc'),
@@ -84,13 +86,19 @@ function findConfigFile(startPath: string): string | null {
             path.join(currentPath, '.fountainpubrc.yml'),
             path.join(currentPath, '.fountainpubrc.toml')
         ];
-        
+
         for (const configPath of configPaths) {
             if (fs.existsSync(configPath)) {
                 return configPath;
             }
         }
-        currentPath = path.dirname(currentPath);
+
+        const parentPath = path.dirname(currentPath);
+        // Safety check to prevent infinite loops
+        if (parentPath === currentPath) {
+            break;
+        }
+        currentPath = parentPath;
     }
     return null;
 }
@@ -99,7 +107,7 @@ function loadConfigFile(configPath: string): Partial<FountainConfig> {
     try {
         const content = fs.readFileSync(configPath, 'utf8');
         const ext = path.extname(configPath).toLowerCase();
-        
+
         switch (ext) {
             case '.json':
                 return JSON.parse(content);

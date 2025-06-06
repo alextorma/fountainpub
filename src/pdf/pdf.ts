@@ -98,7 +98,11 @@ export var GeneratePdf = function (outputpath: string, config: FountainConfig, e
             else if(outputpath=="$PREVIEW$")
                 resolve(pdfmaker.get_pdf_base64(pdf_options))
             else
-                pdfmaker.get_pdf(pdf_options, progress).then(resolve).catch(reject);
+                pdfmaker.get_pdf(pdf_options, progress).then((result) => {
+                    resolve(result);
+                }).catch((error) => {
+                    reject(error);
+                });
         } catch (err) {
             reject(err);
         }
